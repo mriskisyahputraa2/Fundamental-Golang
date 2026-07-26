@@ -22,11 +22,15 @@ func main() {
 	// Route Group
 	api := server.Group("/api")
 	{
+		// Route Event
 		api.POST("/events", controllers.CreateEvent)
 		api.GET("/events", controllers.GetEvents)
 		api.GET("/events/:id", controllers.GetEventById)
-		api.PUT("events/:id", controllers.UpdateEvent)
-		api.DELETE("events/:id", controllers.DeleteEvent)
+		api.PUT("/events/:id", controllers.UpdateEvent)
+		api.DELETE("/events/:id", controllers.DeleteEvent)
+
+		// Route Auth
+		api.POST("/auth/register", controllers.RegisterUser)
 	}
 
 	server.Run(":8080")

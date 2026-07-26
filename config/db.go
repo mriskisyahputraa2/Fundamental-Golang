@@ -17,7 +17,7 @@ func ConnectDB() {
 	dsn := os.Getenv("DATABASE_URI")
 
 	// Pengecekan jika ENV tidak ada maka akan fatal
-	if dsn == ""{
+	if dsn == "" {
 		log.Fatal("Env Variabel Masih Belum Diisi")
 	}
 
@@ -30,7 +30,7 @@ func ConnectDB() {
 	}
 
 	// Melakukan Migrasi Database untuk membuat table
-	err = database.AutoMigrate(&models.Event{})
+	err = database.AutoMigrate(&models.User{}, &models.Event{})
 
 	// Pengecekan jika gagal Migrasi Database
 	if err != nil {
