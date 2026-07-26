@@ -2,9 +2,8 @@ package main
 
 import (
 	"Golang/config"
-	"Golang/models"
+	"Golang/controllers"
 	"log"
-	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -17,49 +16,18 @@ func main() {
 	}
 
 	config.ConnectDB()
-	
+
 	server := gin.Default()
 
 	// Route Group
 	api := server.Group("/api")
 	{
-		api.POST("/events",createEvent)
-		api.GET("/events", getEvents)
-
+		api.POST("/events", controllers.CreateEvent)
+		api.GET("/events", controllers.GetEvents)
+		api.GET("/events/:id", controllers.GetEventById)
+		api.PUT("events/:id", controllers.UpdateEvent)
+		api.DELETE("events/:id", controllers.DeleteEvent)
 	}
 
 	server.Run(":8080")
-}
-
-// Function Handler 
-func getEvents(context *gin.Context){
-	events := models.GetAllEvent()
-
-	context.JSON(http.StatusOK, events)	
-}
-
-func createEvent (context *gin.Context) {
-	var event models.Event
-	err := context.ShouldBindJSON(&event)
-
-
-	// jika terjadi error, kirimkan response error
-	if err != nil {
-		context.JSON(http.StatusBadRequest,gin.H{
-			"message" : "Unable to parse request data",
-			"error"   : err,
-		})		
-		return
-	}
-	// Dummy UserId
-	event.UserId = 1
-
-
-	// Save
-	event.Save()
-
-	context.JSON(http.StatusOK, gin.H{
-		"message" : "Event created successfully",
-		"event"   : event,
-	})	
 }
