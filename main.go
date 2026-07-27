@@ -3,6 +3,7 @@ package main
 import (
 	"Golang/config"
 	"Golang/controllers"
+	"Golang/middlewares"
 	"log"
 
 	"github.com/gin-gonic/gin"
@@ -31,6 +32,13 @@ func main() {
 
 		// Route Auth
 		api.POST("/auth/register", controllers.RegisterUser)
+		api.POST("/auth/login", controllers.LoginUser)
+
+		protected := api.Group("/")
+		protected.Use(middlewares.RequireAuth())
+		{
+			protected.GET("/auth/me", controllers.GetCurrentUser)
+		}
 	}
 
 	server.Run(":8080")
