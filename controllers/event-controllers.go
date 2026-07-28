@@ -10,6 +10,8 @@ import (
 
 // Function untuk membuat event
 func CreateEvent(context *gin.Context) {
+	userID, _ := context.Get("userID")
+
 	var event models.Event
 	err := context.ShouldBindJSON(&event)
 
@@ -20,7 +22,8 @@ func CreateEvent(context *gin.Context) {
 		return
 	}
 
-	event.UserID = 1
+	event.UserID = userID.(int)
+
 	config.DB.Create(&event)
 	context.JSON(http.StatusOK, gin.H{
 		"message": "Event created successfully",
@@ -61,6 +64,7 @@ func GetEventById(context *gin.Context) {
 
 // Function Update Event
 func UpdateEvent(context *gin.Context) {
+	userID, _ := context.Get("userID")
 	var event models.Event
 	paramsId := context.Param("id")
 
@@ -68,6 +72,13 @@ func UpdateEvent(context *gin.Context) {
 	if eventData != nil {
 		context.JSON(http.StatusBadRequest, gin.H{
 			"error": "Event Not Found",
+		})
+		return
+	}
+
+	if event.UserID != userID.(int) {
+		context.JSON(http.StatusForbidden, gin.H{
+			"error": "You don't have permission to update this event",
 		})
 		return
 	}
@@ -91,6 +102,7 @@ func UpdateEvent(context *gin.Context) {
 
 // Function Delete Event
 func DeleteEvent(context *gin.Context) {
+	useID, _ := context.Get("userID")
 	var event models.Event
 	paramsId := context.Param("id")
 
@@ -98,6 +110,13 @@ func DeleteEvent(context *gin.Context) {
 	if EventData != nil {
 		context.JSON(http.StatusBadRequest, gin.H{
 			"error": "Event Not Found",
+		})
+		return
+	}
+
+	if event.UserID != useID.(int) {
+		context.JSON(http.StatusForbidden, gin.H{
+			"error": "You don't have permission to delete this event",
 		})
 		return
 	}

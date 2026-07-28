@@ -24,20 +24,21 @@ func main() {
 	api := server.Group("/api")
 	{
 		// Route Event
-		api.POST("/events", controllers.CreateEvent)
 		api.GET("/events", controllers.GetEvents)
 		api.GET("/events/:id", controllers.GetEventById)
-		api.PUT("/events/:id", controllers.UpdateEvent)
-		api.DELETE("/events/:id", controllers.DeleteEvent)
 
 		// Route Auth
 		api.POST("/auth/register", controllers.RegisterUser)
 		api.POST("/auth/login", controllers.LoginUser)
 
+		// Route Middleware
 		protected := api.Group("/")
 		protected.Use(middlewares.RequireAuth())
 		{
 			protected.GET("/auth/me", controllers.GetCurrentUser)
+			protected.POST("/events", controllers.CreateEvent)
+			protected.PUT("/events/:id", controllers.UpdateEvent)
+			protected.DELETE("/events/:id", controllers.DeleteEvent)
 		}
 	}
 

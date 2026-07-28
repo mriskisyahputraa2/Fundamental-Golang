@@ -14,7 +14,7 @@ func RequireAuth() gin.HandlerFunc {
 		tokenString := context.GetHeader("Authorization")
 		if tokenString == "" || !strings.HasPrefix(tokenString, "Bearer ") {
 			context.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
-				"error": "Token Invalid, Token Not Found",
+				"error": "Access Denied, Token Not Found",
 			})
 			return
 		}
@@ -39,7 +39,7 @@ func RequireAuth() gin.HandlerFunc {
 			return
 		}
 
-		context.Set("userID", uint(claims["id"].(float64)))
+		context.Set("userID", int(claims["id"].(float64)))
 		context.Next()
 	}
 }
