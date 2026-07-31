@@ -3,29 +3,70 @@ package controllers
 import (
 	"Golang/config"
 	"Golang/models"
+	"context"
 	"net/http"
+	"os"
+	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/imagekit-developer/imagekit-go/v2"
+	"github.com/imagekit-developer/imagekit-go/v2/option"
 )
 
-// Function untuk membuat event
-func CreateEvent(context *gin.Context) {
-	userID, _ := context.Get("userID")
+// Function ImageKit Client
+func initImageKit() *imagekit.Client {
+	client := imagekit.NewClient(
+		option.WithPrivateKey(os.Getenv("IMAGEKIT_PRIVATE_KEY")),
+	)
+	return &client
+}
 
-	var event models.Event
-	err := context.ShouldBindJSON(&event)
+// Function untuk membuat event
+func CreateEvent(c *gin.Context) {
+	userID, _ := c.Get("userID")
+
+	// Menerima File dari form data
+	file, header, err := c.Request.FormFile("image")
 
 	if err != nil {
-		context.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "File Image is Required",
 		})
 		return
 	}
 
-	event.UserID = userID.(int)
+	defer file.Close()
+
+	// 1. Upload file ke imagekit
+	fileName := header.Filename
+	ik := initImageKit()
+	uploadRes, errUpload := ik.Files.Upload(context.Background(), imagekit.FileUploadParams{
+		File:     file,
+		FileName: fileName,
+	})
+
+	if errUpload != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to Upload Image",
+		})
+		return
+	}
+
+	parsedTime, _ := time.Parse(time.RFC3339, c.PostForm("datetime"))
+
+	// 2. Simpan ke Database
+	event := models.Event{
+		Name:        c.PostForm("name"),
+		Description: c.PostForm("description"),
+		Location:    c.PostForm("location"),
+		Image:       uploadRes.URL,
+		ImageID:     uploadRes.FileID,
+		UserID:      userID.(int),
+		Datetime:    parsedTime,
+	}
 
 	config.DB.Create(&event)
-	context.JSON(http.StatusOK, gin.H{
+	c.JSON(http.StatusOK, gin.H{
 		"message": "Event created successfully",
 		"event":   event,
 	})
