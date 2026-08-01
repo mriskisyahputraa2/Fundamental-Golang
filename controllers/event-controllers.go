@@ -104,66 +104,106 @@ func GetEventById(context *gin.Context) {
 }
 
 // Function Update Event
-func UpdateEvent(context *gin.Context) {
-	userID, _ := context.Get("userID")
+func UpdateEvent(c *gin.Context) {
+	userID, _ := c.Get("userID")
 	var event models.Event
-	paramsId := context.Param("id")
+	paramsId := c.Param("id")
 
 	var eventData = config.DB.First(&event, paramsId).Error
 	if eventData != nil {
-		context.JSON(http.StatusBadRequest, gin.H{
+		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "Event Not Found",
 		})
 		return
 	}
 
 	if event.UserID != userID.(int) {
-		context.JSON(http.StatusForbidden, gin.H{
+		c.JSON(http.StatusForbidden, gin.H{
 			"error": "You don't have permission to update this event",
 		})
 		return
 	}
 
-	var input models.Event
-	err := context.ShouldBindJSON(&input)
-	if err != nil {
-		context.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
+	file, header, err := c.Request.FormFile("image")
+	if err == nil {
+		defer file.Close()
+
+		ik := initImageKit()
+
+		// Upload file gambar baru
+		fileName := header.Filename
+
+		uploadRes, errUpload := ik.Files.Upload(context.Background(), imagekit.FileUploadParams{
+			File:     file,
+			FileName: fileName,
 		})
-		return
+
+		if errUpload == nil {
+			// Hapus Gambar Lama
+			if event.ImageID != "" {
+				ik.Files.Delete(context.Background(), event.ImageID)
+			}
+
+			// Update Gambar Baru
+			event.Image = uploadRes.URL
+			event.ImageID = uploadRes.FileID
+
+			if name := c.PostForm("name"); name != "" {
+				event.Name = name
+			}
+
+			if description := c.PostForm("description"); description != "" {
+				event.Description = description
+			}
+
+			if location := c.PostForm("location"); location != "" {
+				event.Location = location
+			}
+
+			if datetime := c.PostForm("datetime"); datetime != "" {
+				parsedTime, _ := time.Parse(time.RFC3339, datetime)
+				event.Datetime = parsedTime
+			}
+
+		}
 	}
 
-	config.DB.Model(&event).Updates(&input)
+	config.DB.Save(&event)
 
-	context.JSON(http.StatusOK, gin.H{
+	c.JSON(http.StatusOK, gin.H{
 		"message": "Event updated successfully",
 		"event":   event,
 	})
 }
 
 // Function Delete Event
-func DeleteEvent(context *gin.Context) {
-	useID, _ := context.Get("userID")
+func DeleteEvent(c *gin.Context) {
+	useID, _ := c.Get("userID")
 	var event models.Event
-	paramsId := context.Param("id")
+	paramsId := c.Param("id")
 
 	var EventData = config.DB.First(&event, paramsId).Error
 	if EventData != nil {
-		context.JSON(http.StatusBadRequest, gin.H{
+		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "Event Not Found",
 		})
 		return
 	}
 
 	if event.UserID != useID.(int) {
-		context.JSON(http.StatusForbidden, gin.H{
+		c.JSON(http.StatusForbidden, gin.H{
 			"error": "You don't have permission to delete this event",
 		})
 		return
 	}
 
+	if event.ImageID != "" {
+		ik := initImageKit()
+		ik.Files.Delete(context.Background(), event.ImageID)
+	}
+
 	config.DB.Unscoped().Delete(&event)
-	context.JSON(http.StatusOK, gin.H{
+	c.JSON(http.StatusOK, gin.H{
 		"message": "Event deleted successfully",
 		"event":   event,
 	})
