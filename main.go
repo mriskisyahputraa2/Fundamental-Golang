@@ -35,6 +35,7 @@ func main() {
 		protected := api.Group("/")
 		protected.Use(middlewares.RequireAuth())
 		{
+			protected.GET("/users/events", controllers.GetEventByUser)
 			protected.GET("/auth/me", controllers.GetCurrentUser)
 			protected.POST("/events", controllers.CreateEvent)
 			protected.PUT("/events/:id", controllers.UpdateEvent)
