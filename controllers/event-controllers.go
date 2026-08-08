@@ -164,11 +164,20 @@ func GetEventByUser(c *gin.Context) {
 	var events []models.Event
 	userID, _ := c.Get("userID")
 
-	errEvent := config.DB.Where("User", func(db *gorm.DB) *gorm.DB {
-		return db.Where("id", "name", "email")
-	}).Where("user_id", userID).Find(&events).Error
+	errEvent := config.DB.Preload("User", func(db *gorm.DB) *gorm.DB {
+		return db.Select("id", "name", "email")
+	}).Where("user_id = ?", userID).Find(&events).Error
 
+	// Cek jika query DB sendiri gagal (bukan data kosong)
 	if errEvent != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to get events",
+		})
+		return
+	}
+
+	// Cek jika user tidak punya event sama sekali
+	if len(events) == 0 {
 		c.JSON(http.StatusNotFound, gin.H{
 			"error": "Event not Found",
 		})
